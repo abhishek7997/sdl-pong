@@ -21,11 +21,29 @@
 #define FPS 60
 
 SDLApp *app;
-int mouseX;
-int mouseY;
-GameObject *object1;
-GameObject *object2;
+
+GameObject *leftPaddle;
+GameObject *rightPaddle;
+GameObject *ball;
+
 Sound *CollisionSound;
+Sound *ScoreSound;
+
+// std::string leftScoreText = "left: " + std::to_string(gameState.leftScore);
+// std::string rightScoreText = "right: " + std::to_string(gameState.rightScore);
+
+std::string leftScoreText;
+std::string rightScoreText;
+
+struct GameState
+{
+    float movementSpeed;
+    float ballSpeed;
+    float dx;
+    float dy;
+    int leftScore;
+    int rightScore;
+} gameState;
 
 void HandleEvents()
 {
@@ -35,7 +53,6 @@ void HandleEvents()
     Uint32 buttons;
     buttons = SDL_GetMouseState(&mouseX, &mouseY);
 
-    Uint32 starttime = SDL_GetTicks();
     while (SDL_PollEvent(&event))
     {
         // 1) Handle input
@@ -44,74 +61,143 @@ void HandleEvents()
             app->StopAppLoop();
             break;
         }
-        if (event.button.button == SDL_BUTTON_LEFT)
+        else if (event.type = SDL_KEYDOWN)
         {
-            std::cout << "Left button pressed" << std::endl;
-            if (object2->GetCollider2D().IsColliding(object1->GetCollider2D()))
+            // Handle keypress for moving left and right paddles
+            int xr = rightPaddle->GetSprite().GetPositionX();
+            int yr = rightPaddle->GetSprite().GetPositionY();
+            int hr = rightPaddle->GetSprite().GetHeight();
+
+            int xl = leftPaddle->GetSprite().GetPositionX();
+            int yl = leftPaddle->GetSprite().GetPositionY();
+            int hl = leftPaddle->GetSprite().GetHeight();
+
+            switch (event.key.keysym.sym)
             {
-                std::cout << "Is Colliding" << std::endl;
-                CollisionSound->PlaySound();
-            }
-            else
-            {
-                std::cout << "Not colliding" << std::endl;
+            case SDLK_i:
+                if (yr - gameState.movementSpeed >= 0)
+                    rightPaddle->GetSprite().SetPosition(xr, yr - gameState.movementSpeed);
+                break;
+            case SDLK_k:
+                if (yr + gameState.movementSpeed + hr <= HEIGHT)
+                    rightPaddle->GetSprite().SetPosition(xr, yr + gameState.movementSpeed);
+                break;
+            case SDLK_w:
+                if (yl - gameState.movementSpeed >= 0)
+                    leftPaddle->GetSprite().SetPosition(xl, yl - gameState.movementSpeed);
+                break;
+            case SDLK_s:
+                if (yl + gameState.movementSpeed + hl <= HEIGHT)
+                    leftPaddle->GetSprite().SetPosition(xl, yl + gameState.movementSpeed);
+                break;
+            default:
+                break;
             }
         }
-    }
-    Uint32 endtime = SDL_GetTicks();
-    Uint32 deltatime = endtime - starttime;
-
-    if (deltatime > (1000 / FPS))
-    {
-    }
-    else
-    {
-        SDL_Delay((1000 / FPS) - deltatime);
     }
 }
 
 void HandleUpdates()
 {
-    object1->Update();
-    object2->Update();
-    object1->GetCollider2D().SetAbsolutePosition(object1->GetSprite().GetPositionX(), object1->GetSprite().GetPositionY());
-    object1->GetCollider2D().SetDimensions(object1->GetSprite().GetWidth(), object1->GetSprite().GetHeight());
+    int x = ball->GetSprite().GetPositionX();
+    int y = ball->GetSprite().GetPositionY();
 
-    object2->GetCollider2D().SetAbsolutePosition(object2->GetSprite().GetPositionX(), object2->GetSprite().GetPositionY());
-    object2->GetCollider2D().SetDimensions(object2->GetSprite().GetWidth(), object2->GetSprite().GetHeight());
+    if (leftPaddle->GetCollider2D().IsColliding(ball->GetCollider2D()))
+    {
+        gameState.dx *= -1;
+        CollisionSound->PlaySound();
+    }
+    else if (rightPaddle->GetCollider2D().IsColliding(ball->GetCollider2D()))
+    {
+        gameState.dx *= -1;
+        CollisionSound->PlaySound();
+    }
+
+    if (x + gameState.dx < 0 || x + gameState.dx >= WIDTH - 16)
+        gameState.dx *= -1.0f;
+
+    if (y + gameState.dy < 0 || y + gameState.dy >= HEIGHT - 16)
+        gameState.dy *= -1.0f;
+
+    int nx = x + gameState.dx;
+    int ny = y + gameState.dy;
+
+    if (nx + 16 > WIDTH - 5)
+    {
+        gameState.leftScore += 1;
+        leftScoreText = "left: " + std::to_string(gameState.leftScore);
+        ball->GetSprite().SetPosition(WIDTH / 2 + 8, HEIGHT / 2 + 8);
+    }
+    else if (nx < 5)
+    {
+        gameState.rightScore += 1;
+        rightScoreText = "right: " + std::to_string(gameState.rightScore);
+        ball->GetSprite().SetPosition(WIDTH / 2 + 8, HEIGHT / 2 + 8);
+    }
+    else
+    {
+        ball->GetSprite().SetPosition(nx, ny);
+    }
+
+    leftPaddle->Update();
+    rightPaddle->Update();
+    ball->Update();
+
+    CollisionSound->StopSound();
 }
 
 void HandleRendering()
 {
-    DynamicText text1("./assets/fonts/8bitOperatorPlus-Regular.ttf", 32);
-    text1.DrawText(app->GetRenderer(), "SDL2 Text Demo", 0, 0, 400, 100);
+    leftPaddle->Render();
+    rightPaddle->Render();
+    ball->Render();
 
-    object1->GetSprite().SetPosition(app->GetMouseX(), app->GetMouseY());
-    object1->GetSprite().SetDimension(100, 100);
+    DynamicText leftScore("./assets/fonts/8bitOperatorPlus-Regular.ttf", 32);
+    DynamicText rightScore("./assets/fonts/8bitOperatorPlus-Regular.ttf", 32);
 
-    object2->GetSprite().SetPosition(150, 170);
-    object2->GetSprite().SetDimension(100, 100);
-
-    object1->Render();
-    object2->Render();
+    leftScore.DrawText(app->GetRenderer(), leftScoreText, 50, 0, 100, 50);
+    rightScore.DrawText(app->GetRenderer(), rightScoreText, 500, 0, 100, 50);
 }
 
 int main(int argc, char *argv[])
 {
-    app = new SDLApp(SDL_INIT_VIDEO | SDL_INIT_AUDIO, "New SDL2 Abstraction", 20, 20, 640, 480);
-    app->SetMaxFrameRate(8);
-    object1 = new GameObject(app->GetRenderer(), "./assets/images/chess.bmp");
-    object2 = new GameObject(app->GetRenderer(), "./assets/images/chess.bmp");
+    app = new SDLApp(SDL_INIT_VIDEO | SDL_INIT_AUDIO, "SDL2 Pong Game", 20, 20, 640, 480);
+    app->SetMaxFrameRate(FPS);
+
+    leftPaddle = new GameObject(app->GetRenderer(), "./assets/images/leftpaddle.bmp");
+    leftPaddle->GetSprite().SetPosition(0, 0);
+    leftPaddle->GetSprite().SetDimension(10, HEIGHT / 3);
+
+    rightPaddle = new GameObject(app->GetRenderer(), "./assets/images/rightpaddle.bmp");
+    rightPaddle->GetSprite().SetPosition(WIDTH - 10, 0);
+    rightPaddle->GetSprite().SetDimension(10, HEIGHT / 3);
+
+    ball = new GameObject(app->GetRenderer(), "./assets/images/ball.bmp");
+    ball->GetSprite().SetPosition(WIDTH / 2 + 8, HEIGHT / 2 + 8);
+    ball->GetSprite().SetDimension(16, 16);
+
     CollisionSound = new Sound("./assets/sounds/collide.wav");
     CollisionSound->SetupDevice();
+
+    gameState.leftScore = 0;
+    gameState.rightScore = 0;
+    gameState.ballSpeed = 5.0f;
+    gameState.movementSpeed = 5.0f;
+    gameState.dx = 3.0f;
+    gameState.dy = 3.0f;
+
+    leftScoreText = "left: " + std::to_string(gameState.leftScore);
+    rightScoreText = "right: " + std::to_string(gameState.rightScore);
+
     app->SetEventCallback(HandleEvents);
     app->SetUpdateCallback(HandleUpdates);
     app->SetRenderCallback(HandleRendering);
     app->RunLoop();
 
     delete app;
-    delete object1;
-    delete object2;
+    delete leftPaddle;
+    delete rightPaddle;
+    delete ball;
     delete CollisionSound;
     return 0;
 }

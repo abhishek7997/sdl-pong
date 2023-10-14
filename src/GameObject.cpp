@@ -37,11 +37,11 @@ void GameObject::Render()
 {
     if (m_sprite != nullptr)
         m_sprite->Render(m_renderer);
-    if (m_collider != nullptr)
-    {
-        SDL_SetRenderDrawColor(m_renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
-        SDL_RenderDrawRect(m_renderer, &m_collider->GetColliderBoundingBox());
-    }
+    // if (m_collider != nullptr)
+    // {
+    //     SDL_SetRenderDrawColor(m_renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
+    //     SDL_RenderDrawRect(m_renderer, &m_collider->GetColliderBoundingBox());
+    // }
 }
 
 TextureRectangle &GameObject::GetSprite()
