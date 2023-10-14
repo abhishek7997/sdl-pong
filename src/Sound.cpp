@@ -18,6 +18,11 @@ Sound::~Sound()
 void Sound::PlaySound()
 {
     int status = SDL_QueueAudio(m_device, m_waveStart, m_waveLength);
+    if (status < 0)
+    {
+        std::cout << "Could not play sound: " << SDL_GetError() << std::endl;
+        return;
+    }
     SDL_PauseAudioDevice(m_device, 0);
 }
 

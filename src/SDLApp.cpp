@@ -38,7 +38,7 @@ void SDLApp::RunLoop()
 {
     while (m_isRunning)
     {
-        Uint32 start = SDL_GetTicks();
+        Uint32 starttime = SDL_GetTicks();
         Uint32 buttons = SDL_GetMouseState(&m_mouseX, &m_mouseY);
         m_EventCallback();
         SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -47,9 +47,13 @@ void SDLApp::RunLoop()
         m_UpdateCallback();
         m_RenderCallback();
         SDL_RenderPresent(m_renderer);
-        Uint32 elapsedTime = SDL_GetTicks() - start;
-        if (elapsedTime < m_maxFrameRate)
-            SDL_Delay(m_maxFrameRate - elapsedTime);
+        Uint32 endtime = SDL_GetTicks();
+        Uint32 deltatime = endtime - starttime;
+
+        if (deltatime <= (1000 / m_maxFrameRate))
+        {
+            SDL_Delay((1000 / m_maxFrameRate) - deltatime);
+        }
     }
 }
 
